@@ -1,9 +1,13 @@
 import os
+import traceback
 from dotenv import load_dotenv
 import os
 from pydantic import BaseModel
+from src.auth.auth_bearer import JWTBearer
+from src.auth.auth_handler import signJWT
 from src.core import NLPExtract
-from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
@@ -35,11 +39,56 @@ app.add_middleware(CORSMiddleware,
 class Message(BaseModel):
     message: str
 
+async def check_user(user, password):
+    """_summary_
+
+    Args:
+        user (_type_): _description_
+        password (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    try:
+        if user == "test_user" and password==os.environ.get("PASSWORD"):
+            return True
+
+        return False
+    except Exception as error:
+        return False
+
 @app.get("/health")
 async def read_root():
     return {"status": True}
 
-@app.post("/analyze")
+@app.post("/analyze", dependencies=[Depends(JWTBearer())])
 async def analyzer(body: Message):
     payload = body.dict()
     return NLPExtract(open_api_key=os.environ.get("OPEN_API_TOKEN")).analyze(sentence=payload["message"])
+
+@app.post(
+    "/login"
+)
+async def login(request: Request):
+    try:
+        request_body = await request.json()
+        validate_user = await check_user(request_body["username"], request_body["password"])
+        if validate_user:
+            token = signJWT(request_body["username"])
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "access_token": token["access_token"],
+                    "token_type": "Bearer",
+                    "refresh": token["refresh"],
+                },
+            )
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Invalid Credentials", "error_code": "401"},
+        )
+
+    except Exception as error:
+        return JSONResponse(
+            status_code=503, content={"error_message": f"{error} - {traceback.format_exc()}", "error_code": "503"}
+        )
