@@ -64,7 +64,8 @@ async def read_root():
 @app.post("/analyze", dependencies=[Depends(JWTBearer())])
 async def analyzer(body: Message):
     payload = body.dict()
-    return NLPExtract(open_api_key=os.environ.get("OPEN_API_TOKEN")).analyze(sentence=payload["message"])
+    t = NLPExtract(open_api_key=os.environ.get("OPEN_API_TOKEN")).analyze(sentence=payload["message"])
+    return t
 
 @app.post(
     "/login"

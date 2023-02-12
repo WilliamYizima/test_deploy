@@ -11,7 +11,7 @@
 """
 
 import openai
-import pt_core_news_lg
+import pt_core_news_sm
 
 
 class NLPExtract:
@@ -19,7 +19,7 @@ class NLPExtract:
 
     def __init__(self, open_api_key,stop_words = ["afirmar","resposta","frase"], question_resume = False):
         self._openai_api_key = open_api_key
-        self._nlp_instance = pt_core_news_lg.load()
+        self._nlp_instance = pt_core_news_sm.load()
         self._stop_words = stop_words
         self._question_resume = question_resume
 
